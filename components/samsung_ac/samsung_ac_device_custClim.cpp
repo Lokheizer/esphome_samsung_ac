@@ -19,7 +19,6 @@ namespace esphome
   traits.set_visual_min_temperature(setMin);
   traits.set_visual_max_temperature(setMax);
 
-  // Dynamisch Modes hinzufügen (verwende add_supported_mode)
   for (int i = 0; i < 7; i++) {
     if (m[i] < 0) continue;
     switch (i) {
@@ -27,13 +26,9 @@ namespace esphome
       case 1: traits.add_supported_mode(climate::CLIMATE_MODE_AUTO); break;
       case 2: traits.add_supported_mode(climate::CLIMATE_MODE_COOL); break;
       case 3: traits.add_supported_mode(climate::CLIMATE_MODE_HEAT); break;
-      case 4: traits.add_supported_mode(climate::CLIMATE_MODE_FAN_ONLY); break;
-      case 5: traits.add_supported_mode(climate::CLIMATE_MODE_DRY); break;
-      case 6: traits.add_supported_mode(climate::CLIMATE_MODE_HEAT_COOL); break; // falls vorhanden
     }
   }
 
-  // Dynamisch Presets hinzufügen (verwende add_supported_preset)
   for (int i = 0; i < 8; i++) {
     if (p[i] < 0) continue;
     switch (i) {
@@ -43,8 +38,6 @@ namespace esphome
       case 3: traits.add_supported_preset(climate::CLIMATE_PRESET_BOOST); break;
       case 4: traits.add_supported_preset(climate::CLIMATE_PRESET_ECO); break;
       case 5: traits.add_supported_preset(climate::CLIMATE_PRESET_ACTIVITY); break;
-      case 6: traits.add_supported_preset(climate::CLIMATE_PRESET_SLEEP); break;
-      case 7: traits.add_supported_preset(climate::CLIMATE_PRESET_COMFORT); break;
     }
   }
 
