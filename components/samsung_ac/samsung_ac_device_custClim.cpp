@@ -11,32 +11,49 @@ namespace esphome
 {
   namespace samsung_ac
   {
+  climate::ClimateTraits Samsung_AC_CustClim::traits() {
+  auto traits = climate::ClimateTraits();
 
-    climate::ClimateTraits Samsung_AC_CustClim::traits() {
-      auto traits = climate::ClimateTraits();
-      traits.set_supports_current_temperature(true);
-      traits.set_visual_temperature_step(1);
-      traits.set_visual_min_temperature(setMin);
-      traits.set_visual_max_temperature(setMax);
+  traits.set_supports_current_temperature(true);
+  traits.set_visual_temperature_step(1);
+  traits.set_visual_min_temperature(setMin);
+  traits.set_visual_max_temperature(setMax);
 
-      traits.set_supported_modes({
-          climate::CLIMATE_MODE_OFF,
-          climate::CLIMATE_MODE_AUTO,
-          climate::CLIMATE_MODE_COOL,
-          climate::CLIMATE_MODE_DRY,
-          climate::CLIMATE_MODE_FAN_ONLY,
-          climate::CLIMATE_MODE_HEAT});
-
-      traits.set_supported_presets({
-          climate::CLIMATE_PRESET_NONE,
-          climate::CLIMATE_PRESET_HOME,
-          climate::CLIMATE_PRESET_AWAY,
-          climate::CLIMATE_PRESET_BOOST,
-          climate::CLIMATE_PRESET_ECO,
-          climate::CLIMATE_PRESET_ACTIVITY});;
-
-      return traits;
+  std::vector<climate::ClimateMode> modes;
+  for (int i = 0; i < 7; i++) {
+    if (m[i] >= 0) {
+      switch (i) {
+        case 0: modes.push_back(climate::CLIMATE_MODE_OFF); break;
+        case 1: modes.push_back(climate::CLIMATE_MODE_AUTO); break;
+        case 2: modes.push_back(climate::CLIMATE_MODE_COOL); break;
+        case 3: modes.push_back(climate::CLIMATE_MODE_HEAT); break;
+        case 4: modes.push_back(climate::CLIMATE_MODE_FAN_ONLY); break;
+        case 5: modes.push_back(climate::CLIMATE_MODE_DRY); break;
+      }
     }
+  }
+  traits.set_supported_modes(modes);
+
+  std::vector<climate::ClimatePreset> presets;
+  for (int i = 0; i < 8; i++) {
+    if (p[i] >= 0) {
+      switch (i) {
+        case 0: presets.push_back(climate::CLIMATE_PRESET_NONE); break;
+        case 1: presets.push_back(climate::CLIMATE_PRESET_HOME); break;
+        case 2: presets.push_back(climate::CLIMATE_PRESET_AWAY); break;
+        case 3: presets.push_back(climate::CLIMATE_PRESET_BOOST); break;
+        case 4: presets.push_back(climate::CLIMATE_PRESET_ECO); break;
+        case 5: presets.push_back(climate::CLIMATE_PRESET_ACTIVITY); break;
+        case 6: presets.push_back(climate::CLIMATE_PRESET_SLEEP); break;
+        case 7: presets.push_back(climate::CLIMATE_PRESET_COMFORT); break;
+      }
+    }
+  }
+  traits.set_supported_presets(presets);
+
+  return traits;
+}
+
     
     void Samsung_AC_CustClim::control(const climate::ClimateCall &call){
       ProtocolRequest request;
