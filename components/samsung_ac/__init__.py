@@ -31,13 +31,17 @@ Samsung_AC_NumberDebug = samsung_ac.class_("Samsung_AC_NumberDebug", number.Numb
 SELECT_MODE_SCHEMA = select.select_schema(Samsung_AC_Mode_Select)
 
 NUMBER_SCHEMA = (
-    number.NUMBER_SCHEMA.extend(
-        {cv.GenerateID(): cv.declare_id(Samsung_AC_Number)})
+    number.number_schema(Samsung_AC_Number)
+    .extend(
+        {cv.GenerateID(): cv.declare_id(Samsung_AC_Number)}
+    )
 )
 
 CLIMATE_SCHEMA = (
-    climate.CLIMATE_SCHEMA.extend(
-        {cv.GenerateID(): cv.declare_id(Samsung_AC_Climate)})
+    climate.climate_schema(Samsung_AC_Climate)
+    .extend(
+        {cv.GenerateID(): cv.declare_id(Samsung_AC_Climate)}
+    )
 )
 
 CONF_DEVICE_ID = "samsung_ac_device_id"
@@ -82,23 +86,27 @@ CONF_PRESET_ENABLED = "enabled"
 CONF_PRESET_VALUE = "value"
 
 
-CUSTOM_CLIMATE_SCHEMA = climate.CLIMATE_SCHEMA.extend({
-        cv.GenerateID(): cv.declare_id(Samsung_AC_CustClim),
-        cv.Required(CONF_DEVICE_CUSTOMCLIMATE_status_addr): cv.hex_int,
-        cv.Required(CONF_DEVICE_CUSTOMCLIMATE_set_addr): cv.hex_int,
-        cv.Required(CONF_DEVICE_CUSTOMCLIMATE_enable_addr): cv.hex_int,
-        cv.Optional(CONF_DEVICE_CUSTOMCLIMATE_set_min, default=25): cv.float_,
-        cv.Optional(CONF_DEVICE_CUSTOMCLIMATE_set_max, default=65): cv.float_,
-        cv.Optional(CONF_DEVICE_CUSTOMCLIMATE_mode): cv.Schema({
-            **{cv.Optional(CONF_DEVICE_CUSTOMCLIMATE_mode_addr, default=0): cv.hex_int}, 
-            **{cv.Optional(i, default=-1 if j > 0 else 0): cv.int_ for i,j in zip(CONF_DEVICE_CUSTOMCLIMATE_mode_ClimateModeXValue, range(7))}
-        }),
-        cv.Optional(CONF_DEVICE_CUSTOMCLIMATE_preset): cv.Schema({
-            **{cv.Required(CONF_DEVICE_CUSTOMCLIMATE_preset_addr): cv.hex_int},
-            **{cv.Optional(i, default=-1): cv.int_ for i in CONF_DEVICE_CUSTOMCLIMATE_preset_ClimatePresetXValue}, 
+CUSTOM_CLIMATE_SCHEMA = (
+    climate.climate_schema(Samsung_AC_CustClim)
+    .extend(
+        {
+            cv.GenerateID(): cv.declare_id(Samsung_AC_CustClim),
+            cv.Required(CONF_DEVICE_CUSTOMCLIMATE_status_addr): cv.hex_int,
+            cv.Required(CONF_DEVICE_CUSTOMCLIMATE_set_addr): cv.hex_int,
+            cv.Required(CONF_DEVICE_CUSTOMCLIMATE_enable_addr): cv.hex_int,
+            cv.Optional(CONF_DEVICE_CUSTOMCLIMATE_set_min, default=25): cv.float_,
+            cv.Optional(CONF_DEVICE_CUSTOMCLIMATE_set_max, default=65): cv.float_,
+            cv.Optional(CONF_DEVICE_CUSTOMCLIMATE_mode): cv.Schema({
+                **{cv.Optional(CONF_DEVICE_CUSTOMCLIMATE_mode_addr, default=0): cv.hex_int}, 
+                **{cv.Optional(i, default=-1 if j > 0 else 0): cv.int_ for i,j in zip(CONF_DEVICE_CUSTOMCLIMATE_mode_ClimateModeXValue, range(7))}
+            }),
+            cv.Optional(CONF_DEVICE_CUSTOMCLIMATE_preset): cv.Schema({
+                **{cv.Required(CONF_DEVICE_CUSTOMCLIMATE_preset_addr): cv.hex_int},
+                **{cv.Optional(i, default=-1): cv.int_ for i in CONF_DEVICE_CUSTOMCLIMATE_preset_ClimatePresetXValue}, 
         }),
 
     })
+)
 
 def preset_entry(
     name: str,
@@ -288,7 +296,7 @@ CONFIG_SCHEMA = (
             cv.Optional(CONF_NON_NASA_KEEPALIVE, default=False): cv.boolean,
             cv.Optional(CONF_CAPABILITIES): CAPABILITIES_SCHEMA,
             cv.Required(CONF_DEVICES): cv.ensure_list(DEVICE_SCHEMA),
-            cv.Optional(CONF_debug_number) : cv.ensure_list(number.NUMBER_SCHEMA.extend({
+            cv.Optional(CONF_debug_number) : cv.ensure_list(number.number_schema(Samsung_AC_NumberDebug).extend({
                 cv.GenerateID(): cv.declare_id(Samsung_AC_NumberDebug),
                 cv.Optional(CONF_debug_number_SOURCE, default=""): cv.string,
                 cv.Optional(CONF_debug_number_MIN, default=-1000): cv.float_,
@@ -484,3 +492,5 @@ async def to_code(config):
 
     await cg.register_component(var, config)
     await uart.register_uart_device(var, config)
+
+
