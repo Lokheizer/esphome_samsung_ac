@@ -19,17 +19,21 @@ namespace esphome
       traits.set_visual_min_temperature(setMin);
       traits.set_visual_max_temperature(setMax);
 
-      std::set<climate::ClimateMode> modes;
-      for (int i = 0; i < 7; i++) {
-        if (m[i] >= 0)modes.insert((climate::ClimateMode)i);
-      }
-      traits.set_supported_modes(modes);
+      traits.set_supported_modes({
+          climate::CLIMATE_MODE_OFF,
+          climate::CLIMATE_MODE_AUTO,
+          climate::CLIMATE_MODE_COOL,
+          climate::CLIMATE_MODE_DRY,
+          climate::CLIMATE_MODE_FAN_ONLY,
+          climate::CLIMATE_MODE_HEAT});
 
-      std::set<climate::ClimatePreset> presets;
-      for (int i = 0; i < 8; i++) {
-        if (p[i] >= 0)presets.insert((climate::ClimatePreset)i);
-      }
-      traits.set_supported_presets(presets);
+      traits.set_supported_presets({
+          climate::CLIMATE_PRESET_NONE,
+          climate::CLIMATE_PRESET_HOME,
+          climate::CLIMATE_PRESET_AWAY,
+          climate::CLIMATE_PRESET_BOOST,
+          climate::CLIMATE_PRESET_ECO,
+          climate::CLIMATE_PRESET_ACTIVITY});;
 
       return traits;
     }
