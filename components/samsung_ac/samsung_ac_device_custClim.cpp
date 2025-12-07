@@ -19,20 +19,37 @@ namespace esphome
   traits.set_visual_min_temperature(setMin);
   traits.set_visual_max_temperature(setMax);
 
-  std::vector<climate::ClimateMode> modes;
+  // Dynamisch Modes hinzufügen (verwende add_supported_mode)
   for (int i = 0; i < 7; i++) {
-    if (m[i] >= 0) {
-      switch (i) {
-        case 0: modes.push_back(climate::CLIMATE_MODE_OFF); break;
-        case 1: modes.push_back(climate::CLIMATE_MODE_AUTO); break;
-        case 2: modes.push_back(climate::CLIMATE_MODE_COOL); break;
-        case 3: modes.push_back(climate::CLIMATE_MODE_HEAT); break;
-        case 4: modes.push_back(climate::CLIMATE_MODE_FAN_ONLY); break;
-        case 5: modes.push_back(climate::CLIMATE_MODE_DRY); break;
-      }
+    if (m[i] < 0) continue;
+    switch (i) {
+      case 0: traits.add_supported_mode(climate::CLIMATE_MODE_OFF); break;
+      case 1: traits.add_supported_mode(climate::CLIMATE_MODE_AUTO); break;
+      case 2: traits.add_supported_mode(climate::CLIMATE_MODE_COOL); break;
+      case 3: traits.add_supported_mode(climate::CLIMATE_MODE_HEAT); break;
+      case 4: traits.add_supported_mode(climate::CLIMATE_MODE_FAN_ONLY); break;
+      case 5: traits.add_supported_mode(climate::CLIMATE_MODE_DRY); break;
+      case 6: traits.add_supported_mode(climate::CLIMATE_MODE_HEAT_COOL); break; // falls vorhanden
     }
   }
-  traits.set_supported_modes(modes);
+
+  // Dynamisch Presets hinzufügen (verwende add_supported_preset)
+  for (int i = 0; i < 8; i++) {
+    if (p[i] < 0) continue;
+    switch (i) {
+      case 0: traits.add_supported_preset(climate::CLIMATE_PRESET_NONE); break;
+      case 1: traits.add_supported_preset(climate::CLIMATE_PRESET_HOME); break;
+      case 2: traits.add_supported_preset(climate::CLIMATE_PRESET_AWAY); break;
+      case 3: traits.add_supported_preset(climate::CLIMATE_PRESET_BOOST); break;
+      case 4: traits.add_supported_preset(climate::CLIMATE_PRESET_ECO); break;
+      case 5: traits.add_supported_preset(climate::CLIMATE_PRESET_ACTIVITY); break;
+      case 6: traits.add_supported_preset(climate::CLIMATE_PRESET_SLEEP); break;
+      case 7: traits.add_supported_preset(climate::CLIMATE_PRESET_COMFORT); break;
+    }
+  }
+
+  return traits;
+}
 
   std::vector<climate::ClimatePreset> presets;
   for (int i = 0; i < 8; i++) {
