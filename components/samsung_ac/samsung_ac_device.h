@@ -236,24 +236,20 @@ namespace esphome
       {
         if (climate != nullptr)
         {
-          climate->fan_mode = fanmode_to_climatefanmode(value);
-
           auto fanmode = fanmode_to_climatefanmode(value);
           if (fanmode.has_value())
           {
             climate->fan_mode = fanmode;
-            climate->custom_fan_mode.reset();
           }
           else
           {
             climate->fan_mode.reset();
-            climate->custom_fan_mode = fanmode_to_custom_climatefanmode(value);
           }
           climate->publish_state();
         }
       }
 
-      void update_altmode(AltMode value)
+     void update_altmode(AltMode value)
       {
         if (climate != nullptr)
         {
@@ -270,12 +266,10 @@ namespace esphome
           if (preset)
           {
             climate->preset = preset.value();
-            climate->custom_preset.reset();
           }
           else
           {
-            climate->preset.reset();
-            climate->custom_preset = mode->name;
+            ESP_LOGW(TAG, "Alt mode %s has no matching preset", mode->name.c_str());
           }
           climate->publish_state();
         }
