@@ -23,9 +23,10 @@ namespace esphome
       if (m[i] < 0) continue;
       switch (i) {
         case 0: traits.add_supported_mode(climate::CLIMATE_MODE_OFF); break;
-        case 1: traits.add_supported_mode(climate::CLIMATE_MODE_AUTO); break;
+        case 1: traits.add_supported_mode(climate::CLIMATE_MODE_HEAT_COOL); break;
         case 2: traits.add_supported_mode(climate::CLIMATE_MODE_COOL); break;
         case 3: traits.add_supported_mode(climate::CLIMATE_MODE_HEAT); break;
+        case 6: traits.add_supported_mode(climate::CLIMATE_MODE_AUTO); break;
       }
     }
   
@@ -36,8 +37,10 @@ namespace esphome
         case 1: traits.add_supported_preset(climate::CLIMATE_PRESET_HOME); break;
         case 2: traits.add_supported_preset(climate::CLIMATE_PRESET_AWAY); break;
         case 3: traits.add_supported_preset(climate::CLIMATE_PRESET_BOOST); break;
-        case 4: traits.add_supported_preset(climate::CLIMATE_PRESET_ECO); break;
-        case 5: traits.add_supported_preset(climate::CLIMATE_PRESET_ACTIVITY); break;
+        case 4: traits.add_supported_preset(climate::CLIMATE_PRESET_COMFORT); break;
+        case 5: traits.add_supported_preset(climate::CLIMATE_PRESET_ECO); break;
+        case 6: traits.add_supported_preset(climate::CLIMATE_PRESET_SLEEP); break;
+        case 7: traits.add_supported_preset(climate::CLIMATE_PRESET_ACTIVITY); break;
       }
     }
   
