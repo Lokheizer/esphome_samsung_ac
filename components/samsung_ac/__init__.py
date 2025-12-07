@@ -296,7 +296,7 @@ CONFIG_SCHEMA = (
             cv.Optional(CONF_NON_NASA_KEEPALIVE, default=False): cv.boolean,
             cv.Optional(CONF_CAPABILITIES): CAPABILITIES_SCHEMA,
             cv.Required(CONF_DEVICES): cv.ensure_list(DEVICE_SCHEMA),
-            cv.Optional(CONF_debug_number) : cv.ensure_list(number.NUMBER_SCHEMA.extend({
+            cv.Optional(CONF_debug_number) : cv.ensure_list(number.number_schema(Samsung_AC_NumberDebug).extend({
                 cv.GenerateID(): cv.declare_id(Samsung_AC_NumberDebug),
                 cv.Optional(CONF_debug_number_SOURCE, default=""): cv.string,
                 cv.Optional(CONF_debug_number_MIN, default=-1000): cv.float_,
@@ -492,4 +492,5 @@ async def to_code(config):
 
     await cg.register_component(var, config)
     await uart.register_uart_device(var, config)
+
 
