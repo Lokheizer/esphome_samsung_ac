@@ -72,10 +72,10 @@ namespace esphome
         request.fan_mode = climatefanmode_to_fanmode(fanmodeOpt.value());
       }
 
-      const char *customFanmode = call.get_custom_fan_mode();
-      if (customFanmode != nullptr)
-      {
-        request.fan_mode = customfanmode_to_fanmode(std::string(customFanmode));
+      auto customFanmode = call.get_custom_fan_mode();
+      if (customFanmode.has_value()) {
+        request.fan_mode =
+          customfanmode_to_fanmode(customFanmode.value().c_str());
       }
 
       auto presetOpt = call.get_preset();
@@ -84,10 +84,12 @@ namespace esphome
         set_alt_mode_by_name(request, preset_to_altmodename(presetOpt.value()));
       }
 
-      const char *customPreset = call.get_custom_preset();
-      if (customPreset != nullptr)
-      {
-        set_alt_mode_by_name(request, AltModeName(customPreset));
+      auto customPreset = call.get_custom_preset();
+      if (customPreset.has_value()) {
+        auto preset =
+          altmodename_to_preset(customPreset.value().c_str());
+      if (preset.has_value())
+        request.alt_mode = (AltMode) *preset;
       }
 
       auto swingModeOpt = call.get_swing_mode();
