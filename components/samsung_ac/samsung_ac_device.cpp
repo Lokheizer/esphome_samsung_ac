@@ -73,9 +73,9 @@ namespace esphome
       }
 
       auto customFanmode = call.get_custom_fan_mode();
-      if (customFanmode.is_set() && !customFanmode.empty()) {
-        request.fan_mode =
-          customfanmode_to_fanmode(customFanmode.c_str());
+      const char *fanmode_str = customFanmode.c_str();
+      if (fanmode_str != nullptr && fanmode_str[0] != '\0') {
+        request.fan_mode = customfanmode_to_fanmode(fanmode_str);
       }
 
       auto presetOpt = call.get_preset();
@@ -85,12 +85,12 @@ namespace esphome
       }
 
       auto customPreset = call.get_custom_preset();
-      if (customPreset.is_set() && !customPreset.empty()) {
-        auto preset =
-          altmodename_to_preset(customPreset.c_str());
-      if (preset.has_value()) {
-        request.alt_mode = (AltMode) *preset;
-        }
+      const char *preset_str = customPreset.c_str();
+      if (preset_str != nullptr && preset_str[0] != '\0') {
+        auto preset = altmodename_to_preset(preset_str);
+        if (preset.has_value()) {
+         request.alt_mode = (AltMode) *preset;
+          }
       }
 
       auto swingModeOpt = call.get_swing_mode();
