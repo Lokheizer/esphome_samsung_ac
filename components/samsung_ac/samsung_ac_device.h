@@ -3,6 +3,7 @@
 #include <set>
 #include <optional>
 #include <algorithm>
+#include <cmath>
 #include "esphome/core/helpers.h"
 #include "esphome/components/switch/switch.h"
 #include "esphome/components/sensor/sensor.h"
@@ -91,6 +92,7 @@ namespace esphome
       sensor::Sensor *room_temperature{nullptr};
       sensor::Sensor *outdoor_temperature{nullptr};
       Samsung_AC_Number *target_temperature{nullptr};
+      Samsung_AC_Number *power_limit{nullptr};
       Samsung_AC_Switch *power{nullptr};
       Samsung_AC_Mode_Select *mode{nullptr};
       Samsung_AC_Climate *climate{nullptr};
@@ -156,6 +158,23 @@ namespace esphome
           ProtocolRequest request;
           request.target_temp = value;
           publish_request(request);
+        };
+      };
+
+      void set_power_limit_number(Samsung_AC_Number *number)
+      {
+        power_limit = number;
+        power_limit->write_state_ = [this](float value)
+        {
+          // 50-150% -> NASA register raw value using factor 6.12
+          auto raw_value = static_cast<long>(roundf(value * 6.12f));
+
+          ProtocolRequest request;
+          request.custom_message_number = 0x42F1;
+          request.custom_message_value = raw_value;
+          publish_request(request);
+
+          power_limit->publish_state(value);
         };
       };
 

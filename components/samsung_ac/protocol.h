@@ -90,6 +90,8 @@ namespace esphome
             optional<FanMode> fan_mode;
             optional<SwingMode> swing_mode;
             optional<AltMode> alt_mode;
+            optional<uint16_t> custom_message_number;
+            optional<long> custom_message_value;
             optional<Samsung_AC_CustClim *> caller; // used to analyze custom addresses
         };
 

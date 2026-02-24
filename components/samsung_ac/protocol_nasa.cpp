@@ -415,6 +415,14 @@ namespace esphome
                 packet.messages.push_back(targettemp);
             }
 
+            if (request.custom_message_number && request.custom_message_value)
+            {
+                MessageSet custom_message((MessageNumber)request.custom_message_number.value());
+                custom_message.value = request.custom_message_value.value();
+                packet.messages.push_back(custom_message);
+                ESP_LOGI(TAG, "Pushing custom value %ld at 0x%X for %s", custom_message.value, request.custom_message_number.value(), address.c_str());
+            }
+
             if (request.fan_mode)
             {
                 MessageSet fanmode(MessageNumber::ENUM_in_fan_mode);

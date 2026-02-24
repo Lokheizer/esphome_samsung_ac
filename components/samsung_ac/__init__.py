@@ -49,6 +49,7 @@ CONF_DEVICE_ADDRESS = "address"
 CONF_DEVICE_ROOM_TEMPERATURE = "room_temperature"
 CONF_DEVICE_ROOM_TEMPERATURE_OFFSET = "room_temperature_offset"
 CONF_DEVICE_TARGET_TEMPERATURE = "target_temperature"
+CONF_DEVICE_POWER_LIMIT = "power_limit"
 CONF_DEVICE_OUTDOOR_TEMPERATURE = "outdoor_temperature"
 CONF_DEVICE_POWER = "power"
 CONF_DEVICE_MODE = "mode"
@@ -235,6 +236,7 @@ DEVICE_SCHEMA = (
                 state_class=STATE_CLASS_MEASUREMENT,
             ),
             cv.Optional(CONF_DEVICE_TARGET_TEMPERATURE): NUMBER_SCHEMA,
+            cv.Optional(CONF_DEVICE_POWER_LIMIT): NUMBER_SCHEMA,
             cv.Optional(CONF_DEVICE_POWER): switch.switch_schema(Samsung_AC_Switch),
             cv.Optional(CONF_DEVICE_MODE): SELECT_MODE_SCHEMA,
             cv.Optional(CONF_DEVICE_CLIMATE): CLIMATE_SCHEMA,
@@ -394,6 +396,16 @@ async def to_code(config):
                                           max_value=30.0,
                                           step=1.0)
             cg.add(var_dev.set_target_temperature_number(num))
+
+        if CONF_DEVICE_POWER_LIMIT in device:
+            conf = device[CONF_DEVICE_POWER_LIMIT]
+            conf[CONF_UNIT_OF_MEASUREMENT] = UNIT_PERCENT
+            conf[CONF_ICON] = "mdi:percent"
+            num = await number.new_number(conf,
+                                          min_value=50.0,
+                                          max_value=150.0,
+                                          step=1.0)
+            cg.add(var_dev.set_power_limit_number(num))
 
         if CONF_DEVICE_MODE in device:
             conf = device[CONF_DEVICE_MODE]

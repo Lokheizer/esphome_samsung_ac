@@ -97,6 +97,8 @@ samsung_ac:
         name: "Kitchen temperature"
       target_temperature:
         name: "Kitchen target temperature"
+      power_limit:
+        name: "Kitchen power limit"
       power:
         name: "Kitchen power"
       mode:
