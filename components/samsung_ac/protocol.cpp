@@ -109,15 +109,15 @@ namespace esphome
             return AddressType::Other;
         }
 
-        Protocol *nasaProtocol = new NasaProtocol();
-        Protocol *nonNasaProtocol = new NonNasaProtocol();
-
         Protocol *get_protocol(const std::string &address)
         {
-            if (!is_nasa_address(address))
-                return nonNasaProtocol;
+            static NasaProtocol nasa_protocol;
+            static NonNasaProtocol non_nasa_protocol;
 
-            return nasaProtocol;
+            if (!is_nasa_address(address))
+                return &non_nasa_protocol;
+
+            return &nasa_protocol;
         }
     } // namespace samsung_ac
 } // namespace esphome

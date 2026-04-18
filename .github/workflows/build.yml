@@ -4,7 +4,7 @@ jobs:
   framework-arduino:
     runs-on: ubuntu-latest     
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - uses: esphome/build-action@v1.5.2
       id: esphome-build
       with:
@@ -13,7 +13,7 @@ jobs:
   framework-espidf:
     runs-on: ubuntu-latest     
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - uses: esphome/build-action@v1.5.2
       id: esphome-build
       with:
@@ -22,7 +22,7 @@ jobs:
   tests:
     runs-on: ubuntu-latest     
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: install cpp
       run: sudo apt-get install -y build-essential
     - name: chmod
