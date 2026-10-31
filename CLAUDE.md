@@ -143,15 +143,19 @@ bash test/test_non_nasa.sh
 
 Tests compile C++ directly with `g++ -std=gnu++17` (see `test/build_and_run.sh`) using mock ESPHome headers from `test/esphome/` (core: log/hal/optional; components: minimal `climate` and `number` stubs so `samsung_ac_device_custClim.h` and `debug_number.h` can be included). Only the protocol layer is compiled — `samsung_ac.cpp` and `samsung_ac_device*.cpp` are **not** covered by the unit tests. No ESP hardware or ESPHome installation required.
 
-**Known failure:** `test_previous_data_is_used_correctly` in `test/main_test_non_nasa.cpp` fails. It triggers sending with an `F8` packet, but since the controller-registration logic (April 2024) Non-NASA requests are only sent in reply to a `C6` request_control from the outdoor unit. The test is outdated; the same failure exists upstream.
+**Triggering Non-NASA sends in tests:** requests queued via `publish_request()` are only sent in reply to a `C6` request_control from the outdoor unit (`src=c8`, `dst=d0`, `data[4]=0x01`), e.g. `32c8d0c60100000000000000df34` as used in `test_previous_data_is_used_correctly`. Other packets (e.g. `F8`) do not trigger sending. The test mock `millis()` in `test/test_stuff.h` always returns `0`, so `time_sent` stays `0` after sending and every `C6` resends all queued requests — assert on `last_publish_data`, not on the number of publishes.
 
 ### CI Pipeline
 
 GitHub Actions (`.github/workflows/build.yml`) runs three jobs on every push:
 
-1. **Arduino framework build** — compiles with `esphome/build-action@v1.5.2` using `.github/conf_arduino.yml`
+1. **Arduino framework build** — compiles with `esphome/build-action@v8.1.0` (input `yaml-file`) using `.github/conf_arduino.yml`
 2. **ESP-IDF framework build** — same action with `.github/conf_esp_idf.yml`
 3. **Unit tests** — installs `build-essential`, runs `test/test.sh`
+
+The build action runs the `ghcr.io/esphome/esphome:latest` image and mounts the repo at `/github/workspace` (hence `path: /github/workspace/components` in the CI configs). v8.x requires ESPHome ≥ 2026.7.0. Older action versions (v1.x) no longer start: their `entrypoint.py` uses `#!/usr/bin/python3`, which does not exist in the current image (base `python:3.14-slim`), so the container exits with code 255.
+
+To reproduce a CI build locally, copy the CI config, replace `/github/workspace/components` with the local `components` path and run `esphome config <file>` / `esphome compile <file>`.
 
 ### Building with ESPHome
 
