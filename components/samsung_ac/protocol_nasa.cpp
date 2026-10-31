@@ -205,8 +205,6 @@ namespace esphome
 
         static int _packetCounter = 0;
 
-        std::vector<Packet> out;
-
         /*
                 class OutgoingPacket
                 {
@@ -235,7 +233,6 @@ namespace esphome
             MessageSet message(messageNumber);
             message.value = value;
             packet.messages.push_back(message);
-            out.push_back(packet);
 
             return packet;
         }
@@ -444,8 +441,6 @@ namespace esphome
                 return;
 
             ESP_LOGW(TAG, "publish packet %s", packet.to_string().c_str());
-
-            out.push_back(packet);
 
             auto data = packet.encode();
             target->publish_data(data);
@@ -726,17 +721,7 @@ namespace esphome
 
             if (packet_.command.dataType == DataType::Ack)
             {
-                for (int i = 0; i < out.size(); i++)
-                {
-                    if (out[i].command.packetNumber == packet_.command.packetNumber)
-                    {
-                        ESP_LOGW(TAG, "found %d", out[i].command.packetNumber);
-                        out.erase(out.begin() + i);
-                        break;
-                    }
-                }
-
-                ESP_LOGW(TAG, "Ack %s s %d", packet_.to_string().c_str(), out.size());
+                ESP_LOGW(TAG, "Ack %s", packet_.to_string().c_str());
                 return;
             }
 
