@@ -267,7 +267,9 @@ void test_previous_data_is_used_correctly()
     ProtocolRequest req1;
     req1.power = false;
     get_protocol("00")->publish_request(&target, "00", req1);
-    test_process_data("32c8f0f80345f0c913000000ac34", target); // trigger publish
+    // Requests are only sent in reply to a CmdC6 request_control from the outdoor unit:
+    // src=c8, dst=d0 (us), cmd=c6, data[4]=0x01 (control_status), crc=c8^d0^c6^01=df
+    test_process_data("32c8d0c60100000000000000df34", target); // trigger publish
 
     NonNasaRequest request1;
     request1.dst = "00";
@@ -286,7 +288,7 @@ void test_previous_data_is_used_correctly()
     ProtocolRequest req2;
     req2.power = true;
     get_protocol("01")->publish_request(&target, "01", req2);
-    test_process_data("32c8f0f80345f0c913000000ac34", target); // trigger publish
+    test_process_data("32c8d0c60100000000000000df34", target); // trigger publish (CmdC6, see above)
 
     NonNasaRequest request2;
     request2.dst = "01";

@@ -4,25 +4,25 @@ jobs:
   framework-arduino:
     runs-on: ubuntu-latest     
     steps:
-    - uses: actions/checkout@v3
-    - uses: esphome/build-action@v1.5.2
+    - uses: actions/checkout@v7
+    - uses: esphome/build-action@v8.1.0
       id: esphome-build
       with:
-        yaml_file: .github/conf_arduino.yml
+        yaml-file: .github/conf_arduino.yml
   
   framework-espidf:
     runs-on: ubuntu-latest     
     steps:
-    - uses: actions/checkout@v3
-    - uses: esphome/build-action@v1.5.2
+    - uses: actions/checkout@v7
+    - uses: esphome/build-action@v8.1.0
       id: esphome-build
       with:
-        yaml_file: .github/conf_esp_idf.yml
+        yaml-file: .github/conf_esp_idf.yml
 
   tests:
     runs-on: ubuntu-latest     
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v7
     - name: install cpp
       run: sudo apt-get install -y build-essential
     - name: chmod
