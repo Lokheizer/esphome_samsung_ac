@@ -203,9 +203,10 @@ namespace esphome
             }
         }
 
-        static int _packetCounter = 0;
-
-        std::vector<Packet> out;
+        // The packet number doubles as send queue id, where 0 means "send without
+        // waiting for an Ack" (see MessageTarget::publish_data). It is therefore
+        // never 0 - also not after wrapping around at 255.
+        static uint8_t _packetCounter = 1;
 
         /*
                 class OutgoingPacket
@@ -235,7 +236,6 @@ namespace esphome
             MessageSet message(messageNumber);
             message.value = value;
             packet.messages.push_back(message);
-            out.push_back(packet);
 
             return packet;
         }
@@ -249,6 +249,8 @@ namespace esphome
             packet.command.packetType = PacketType::Normal;
             packet.command.dataType = dataType;
             packet.command.packetNumber = _packetCounter++;
+            if (_packetCounter == 0)
+                _packetCounter = 1;
             return packet;
         }
 
@@ -371,14 +373,14 @@ namespace esphome
 
         void NasaProtocol::publish_request(MessageTarget *target, const std::string &address, ProtocolRequest &request)
         {
-            Packet packet = Packet::createa_partial(Address::parse(address), DataType::Request);
+            std::vector<MessageSet> messages;
 
             if (request.caller.has_value()) { // customClimate
                 Samsung_AC_CustClim *caller = request.caller.value();
                 if (caller->presToSend >= 0) {
                     MessageSet pres((MessageNumber)caller->presAddr);
                     pres.value = caller->presToSend;
-                    packet.messages.push_back(pres);
+                    messages.push_back(pres);
                     ESP_LOGI(TAG, "Pushing pres %i at 0x%X for %s", pres.value, (MessageNumber)caller->presAddr, address.c_str());
                     caller->presToSend = -1;
                 }
@@ -394,7 +396,7 @@ namespace esphome
                 }
                 MessageSet mode(addr);
                 mode.value = (int)request.mode.value();
-                packet.messages.push_back(mode);
+                messages.push_back(mode);
                 ESP_LOGI(TAG, "Pushing mode %i at 0x%X for %s", mode.value , addr, address.c_str());
             }
 
@@ -403,7 +405,7 @@ namespace esphome
                 MessageNumber addr = request.caller.has_value() ? (MessageNumber)request.caller.value()->enable: MessageNumber::ENUM_in_operation_power;
                 MessageSet power(addr);
                 power.value = request.power.value() ? 1 : 0;
-                packet.messages.push_back(power);
+                messages.push_back(power);
                 ESP_LOGI(TAG, "Pushing power %u at 0x%X for %s", power.value  , addr, address.c_str());
             }
 
@@ -412,43 +414,72 @@ namespace esphome
                 MessageNumber addr = request.caller.has_value() ? (MessageNumber)request.caller.value()->set: MessageNumber::VAR_in_temp_target_f;
                 MessageSet targettemp(addr);
                 targettemp.value = request.target_temp.value() * 10.0;
-                packet.messages.push_back(targettemp);
+                messages.push_back(targettemp);
             }
 
             if (request.fan_mode)
             {
                 MessageSet fanmode(MessageNumber::ENUM_in_fan_mode);
                 fanmode.value = fanmode_to_nasa_fanmode(request.fan_mode.value());
-                packet.messages.push_back(fanmode);
+                messages.push_back(fanmode);
             }
 
             if (request.alt_mode)
             {
                 MessageSet altmode(MessageNumber::ENUM_in_alt_mode);
                 altmode.value = request.alt_mode.value();
-                packet.messages.push_back(altmode);
+                messages.push_back(altmode);
             }
 
             if (request.swing_mode)
             {
                 MessageSet hl_swing(MessageNumber::ENUM_in_louver_hl_swing);
                 hl_swing.value = static_cast<uint8_t>(request.swing_mode.value()) & 1;
-                packet.messages.push_back(hl_swing);
+                messages.push_back(hl_swing);
 
                 MessageSet lr_swing(MessageNumber::ENUM_in_louver_lr_swing);
                 lr_swing.value = (static_cast<uint8_t>(request.swing_mode.value()) >> 1) & 1;
-                packet.messages.push_back(lr_swing);
+                messages.push_back(lr_swing);
             }
 
-            if (packet.messages.size() == 0)
+            if (messages.empty())
                 return;
 
-            ESP_LOGW(TAG, "publish packet %s", packet.to_string().c_str());
+            // Merge into the pending messages for this address. A newer value
+            // for the same message number replaces the older one.
+            std::vector<MessageSet> &pending = pending_messages_[address];
+            for (const MessageSet &message : messages)
+            {
+                bool replaced = false;
+                for (MessageSet &queued : pending)
+                {
+                    if (queued.messageNumber == message.messageNumber)
+                    {
+                        queued = message;
+                        replaced = true;
+                        break;
+                    }
+                }
+                if (!replaced)
+                    pending.push_back(message);
+            }
+        }
 
-            out.push_back(packet);
+        void NasaProtocol::protocol_update(MessageTarget *target)
+        {
+            for (auto &pair : pending_messages_)
+            {
+                if (pair.second.empty())
+                    continue;
 
-            auto data = packet.encode();
-            target->publish_data(data);
+                Packet packet = Packet::createa_partial(Address::parse(pair.first), DataType::Request);
+                packet.messages = std::move(pair.second);
+
+                ESP_LOGW(TAG, "publish packet %s", packet.to_string().c_str());
+
+                target->publish_data(packet.command.packetNumber, packet.encode());
+            }
+            pending_messages_.clear();
         }
 
         Mode operation_mode_to_mode(int value)
@@ -726,17 +757,11 @@ namespace esphome
 
             if (packet_.command.dataType == DataType::Ack)
             {
-                for (int i = 0; i < out.size(); i++)
-                {
-                    if (out[i].command.packetNumber == packet_.command.packetNumber)
-                    {
-                        ESP_LOGW(TAG, "found %d", out[i].command.packetNumber);
-                        out.erase(out.begin() + i);
-                        break;
-                    }
-                }
-
-                ESP_LOGW(TAG, "Ack %s s %d", packet_.to_string().c_str(), out.size());
+                ESP_LOGW(TAG, "Ack %s", packet_.to_string().c_str());
+                // Only Acks addressed to us: other controllers on the bus (wired
+                // remote, WiFi kit) use their own, possibly identical, packet numbers.
+                if (dest == Address::get_my_address().to_string())
+                    target->ack_data(packet_.command.packetNumber);
                 return;
             }
 
@@ -1212,11 +1237,6 @@ namespace esphome
                 ESP_LOGW(TAG, "s:%s d:%s !! unknown %s", source.c_str(), dest.c_str(), message.to_string().c_str());
             }
             return;
-        }
-
-        void NasaProtocol::protocol_update(MessageTarget *target)
-        {
-            // Unused for NASA protocol
         }
 
     } // namespace samsung_ac

@@ -75,11 +75,31 @@ namespace esphome
     {
     }
 
-    void Samsung_AC::publish_data(std::vector<uint8_t> &data)
+    void Samsung_AC::publish_data(uint8_t id, std::vector<uint8_t> &&data)
+    {
+      if (id == 0)
+      {
+        write_now(data);
+        return;
+      }
+
+      send_queue_.enqueue(id, std::move(data), millis());
+    }
+
+    void Samsung_AC::ack_data(uint8_t id)
+    {
+      if (send_queue_.ack(id))
+      {
+        ESP_LOGD(TAG, "Packet %u acknowledged", id);
+      }
+    }
+
+    void Samsung_AC::write_now(const std::vector<uint8_t> &data)
     {
       ESP_LOGW(TAG, "write %s", bytes_to_hex(data).c_str());
       this->write_array(data);
       this->flush();
+      last_transmission_ = millis();
     }
 
     void Samsung_AC::loop()
@@ -94,14 +114,16 @@ namespace esphome
         data_.clear();
       }
 
-      // If there is no data we use the time to send
       if (!available())
       {
-        if (send_queue_.size() > 0)
+        // Only send while no partial packet is pending, otherwise we would talk
+        // into a packet that is still arriving. The queue itself additionally
+        // waits until the bus has been quiet for SEND_SILENCE_INTERVAL.
+        if (data_.empty())
         {
-          auto senddata = send_queue_.front();
-          publish_data(senddata);
-          send_queue_.pop();
+          const std::vector<uint8_t> *senddata = send_queue_.poll(now, last_transmission_);
+          if (senddata != nullptr)
+            write_now(*senddata);
         }
       }
       else
@@ -125,8 +147,11 @@ namespace esphome
         }
       }
 
-      // Allow device protocols to perform recurring tasks (at most every 200ms)
-      if (now - last_protocol_update_ >= 200)
+      // Allow device protocols to perform recurring tasks (at most every 200ms).
+      // Skipped while NASA packets are waiting for their Ack, so that requests
+      // issued in the meantime are grouped into one packet by NasaProtocol.
+      // (Non-NASA never queues, so it is not affected.)
+      if (send_queue_.empty() && now - last_protocol_update_ >= 200)
       {
         last_protocol_update_ = now;
         for (const auto &pair : devices_)
