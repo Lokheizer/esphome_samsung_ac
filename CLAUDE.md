@@ -114,18 +114,22 @@ User action on entity (Climate/Switch/Select/Number)
 
 ### Running Unit Tests Locally
 
+All scripts must be run from the **repository root** (they use paths like `./test/...` and `components/...`):
+
 ```bash
-# Run all tests (NASA + Non-NASA)
-cd test && bash test.sh
+# Run all tests (NASA + Non-NASA), stops at the first failing suite
+bash test/test.sh
 
 # Run only NASA protocol tests
-cd test && bash test_nasa.sh
+bash test/test_nasa.sh
 
 # Run only Non-NASA protocol tests
-cd test && bash test_non_nasa.sh
+bash test/test_non_nasa.sh
 ```
 
-Tests compile C++ directly with `g++` using mock ESPHome headers from `test/esphome/`. No ESP hardware or ESPHome installation required.
+Tests compile C++ directly with `g++ -std=gnu++17` (see `test/build_and_run.sh`) using mock ESPHome headers from `test/esphome/` (core: log/hal/optional; components: minimal `climate` and `number` stubs so `samsung_ac_device_custClim.h` and `debug_number.h` can be included). Only the protocol layer is compiled — `samsung_ac.cpp` and `samsung_ac_device*.cpp` are **not** covered by the unit tests. No ESP hardware or ESPHome installation required.
+
+**Known failure:** `test_previous_data_is_used_correctly` in `test/main_test_non_nasa.cpp` fails. It triggers sending with an `F8` packet, but since the controller-registration logic (April 2024) Non-NASA requests are only sent in reply to a `C6` request_control from the outdoor unit. The test is outdated; the same failure exists upstream.
 
 ### CI Pipeline
 

@@ -132,6 +132,10 @@ public:
         last_custom_sensors.insert(message_number);
     }
 
+    void getValueForCustomClimate(const std::string source, uint16_t messageNumber, long value)
+    {
+    }
+
     void assert_only_address(const std::string address)
     {
         assert(last_register_address == address);
