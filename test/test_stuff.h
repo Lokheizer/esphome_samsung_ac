@@ -20,10 +20,23 @@ public:
     }
 
     std::string last_publish_data;
-    void publish_data(std::vector<uint8_t> &data)
+    int last_publish_id = -1;
+    int publish_count = 0;
+    void publish_data(uint8_t id, std::vector<uint8_t> &&data)
     {
         last_publish_data = bytes_to_hex(data);
-        cout << "> publish_data " << last_publish_data << endl;
+        last_publish_id = id;
+        publish_count++;
+        cout << "> publish_data id=" << (int)id << " " << last_publish_data << endl;
+    }
+
+    int last_ack_id = -1;
+    int ack_count = 0;
+    void ack_data(uint8_t id)
+    {
+        last_ack_id = id;
+        ack_count++;
+        cout << "> ack_data id=" << (int)id << endl;
     }
 
     std::string last_register_address;

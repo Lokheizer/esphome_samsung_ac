@@ -65,7 +65,10 @@ namespace esphome
         {
         public:
             virtual uint32_t get_miliseconds() = 0;
-            virtual void publish_data(std::vector<uint8_t> &data) = 0;
+            // id == 0: transmit immediately (Non-NASA, which replies to polls of the outdoor unit).
+            // id != 0: queue and transmit when the bus is quiet, retry until ack_data(id) (NASA).
+            virtual void publish_data(uint8_t id, std::vector<uint8_t> &&data) = 0;
+            virtual void ack_data(uint8_t id) = 0;
             virtual void register_address(const std::string address) = 0;
             virtual void set_power(const std::string address, bool value) = 0;
             virtual void set_room_temperature(const std::string address, float value) = 0;

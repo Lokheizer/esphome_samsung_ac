@@ -8,6 +8,7 @@
 #include "esphome/components/uart/uart.h"
 #include "samsung_ac_device.h"
 #include "protocol.h"
+#include "send_queue.h"
 
 namespace esphome
 {
@@ -64,7 +65,9 @@ namespace esphome
         return millis();
       }
 
-      void /*MessageTarget::*/ publish_data(std::vector<uint8_t> &data);
+      void /*MessageTarget::*/ publish_data(uint8_t id, std::vector<uint8_t> &&data) override;
+
+      void /*MessageTarget::*/ ack_data(uint8_t id) override;
 
       void /*MessageTarget::*/ set_room_temperature(const std::string address, float value) override
       {
@@ -165,9 +168,11 @@ namespace esphome
       std::map<std::string, Samsung_AC_Device *> devices_;
       std::set<std::string> addresses_;
 
-      std::queue<std::vector<uint8_t>> send_queue_;
+      void write_now(const std::vector<uint8_t> &data);
+
+      SendQueue send_queue_;
       std::vector<uint8_t> data_;
-      uint32_t last_transmission_{0};
+      uint32_t last_transmission_{0}; // last byte received or sent on the bus
       uint32_t last_protocol_update_{0};
 
       bool data_processing_init = true;

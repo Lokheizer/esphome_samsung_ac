@@ -495,8 +495,7 @@ namespace esphome
                 if (item.time_sent == 0)
                 {
                     item.time_sent = now;
-                    auto data = item.request.encode();
-                    target->publish_data(data);
+                    target->publish_data(0, item.request.encode());
                 }
             }
         }
@@ -527,7 +526,7 @@ namespace esphome
             data[12] = build_checksum(data);
 
             // Send now
-            target->publish_data(data);
+            target->publish_data(0, std::move(data));
         }
 
         void process_non_nasa_packet(MessageTarget *target)

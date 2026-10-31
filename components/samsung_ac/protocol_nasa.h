@@ -1,6 +1,8 @@
 #pragma once
 
 #include <vector>
+#include <map>
+#include <string>
 #include <iostream>
 #include "protocol.h"
 
@@ -169,8 +171,14 @@ namespace esphome
         public:
             NasaProtocol() = default;
 
+            // Collects the request's messages per address (later values replace
+            // earlier ones with the same message number). They are sent as one
+            // packet by the next protocol_update().
             void publish_request(MessageTarget *target, const std::string &address, ProtocolRequest &request) override;
             void protocol_update(MessageTarget *target) override;
+
+        protected:
+            std::map<std::string, std::vector<MessageSet>> pending_messages_; // address -> messages
         };
 
     } // namespace samsung_ac

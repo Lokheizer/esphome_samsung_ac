@@ -24,6 +24,7 @@ esphome_samsung_ac/
 │   ├── protocol_nasa.h/cpp    # NASA protocol implementation (~1200 lines, largest file)
 │   ├── protocol_non_nasa.h/cpp # Non-NASA protocol implementation (~680 lines)
 │   ├── conversions.h/cpp      # Mode/fan/swing/preset <-> ESPHome climate mappings
+│   ├── send_queue.h/cpp       # NASA send queue: bus-silence wait, Ack, retry, timeout (ESPHome-independent, unit tested)
 │   ├── util.h/cpp             # Hex encoding, address parsing utilities
 │   ├── debug_mqtt.h/cpp       # Optional MQTT debug forwarding
 │   └── debug_number.h/cpp     # Debug number entity
@@ -54,7 +55,8 @@ esphome_samsung_ac/
 Samsung_AC (samsung_ac.h)
 ├── Inherits: PollingComponent, UARTDevice, MessageTarget
 ├── Owns: map<string, Samsung_AC_Device*> devices_
-├── Manages: UART read/write, message routing, send queue
+├── Owns: SendQueue send_queue_ (outgoing NASA packets awaiting Ack)
+├── Manages: UART read/write, message routing
 └── Lifecycle: setup() → loop() → update()
 
 Samsung_AC_Device (samsung_ac_device.h)
@@ -84,15 +86,26 @@ UART RX → Samsung_AC::loop()
   → ESPHome entity publish (climate/sensor/switch state)
 ```
 
-**Outgoing (ESPHome → AC):**
+**Outgoing (ESPHome → AC), NASA:**
 ```
-User action on entity (Climate/Switch/Select/Number)
+User action on entity (Climate/Switch/Select/Number/custom_climate)
   → Samsung_AC_Device::publish_request(ProtocolRequest)
-  → Protocol::publish_request()
-  → Build NASA or Non-NASA packet
-  → Enqueue in Samsung_AC::send_queue_
-  → UART TX in loop()
+  → NasaProtocol::publish_request()
+      builds MessageSets and merges them into pending_messages_[address]
+      (same message number → newer value replaces older one)
+  → NasaProtocol::protocol_update()   (from Samsung_AC::loop(), every 200 ms,
+                                       only while the send queue is empty)
+      one packet per address → MessageTarget::publish_data(packetNumber, bytes)
+  → Samsung_AC::send_queue_ (SendQueue, send_queue.h/.cpp)
+  → UART TX in loop() when: no RX bytes available, no partial packet in data_,
+    and bus quiet for SEND_SILENCE_INTERVAL
+  → Ack from the unit (DataType::Ack, dest == 80.ff.00)
+      → process_nasa_packet() → MessageTarget::ack_data(packetNumber) → removed
 ```
+
+Only one NASA packet is in flight at a time. Without an Ack it is sent again after `SEND_RETRY_INTERVAL` (500 ms), at most `SEND_MAX_ATTEMPTS` (4) times, and given up after `SEND_TIMEOUT` (4 s) — see the constants in `send_queue.h`. Packet numbers are 1..255 (never 0, see below).
+
+**Outgoing, Non-NASA:** `publish_data(0, bytes)` — id `0` means "write immediately", bypassing the queue. Non-NASA must answer the outdoor unit's `C6` request_control poll right away and has its own request queue/retry logic in `protocol_non_nasa.cpp` (`nonnasa_requests`, Cmd54 ack).
 
 ### MessageTarget Interface
 
@@ -107,7 +120,8 @@ User action on entity (Climate/Switch/Select/Number)
 | `protocol_non_nasa.h/cpp` | Non-NASA packet encode/decode, command types (Cmd20, CmdC0, etc.) |
 | `samsung_ac_device.h` | Device class + all ESPHome entity class definitions |
 | `conversions.cpp` | Bidirectional mapping between internal enums and ESPHome climate enums |
-| `protocol.h` | Shared enums (Mode, FanMode, SwingMode), ProtocolRequest struct, Protocol base |
+| `protocol.h` | Shared enums (Mode, FanMode, SwingMode), ProtocolRequest struct, Protocol base, MessageTarget interface (`publish_data(id, data)`, `ack_data(id)`) |
+| `send_queue.h/cpp` | NASA send queue with timing constants; tested in `test/main_test_nasa.cpp` with simulated time |
 | `example.yaml` | Reference configuration showing all supported options |
 
 ## Build & Test
@@ -204,6 +218,8 @@ Defined in `__init__.py` with numeric protocol values:
 - CRC16-CCITT (polynomial 0x1021)
 - Size range: 16–1500 bytes
 - Optional `0x55` preamble (up to 100 bytes, skipped)
+- Our own address (sender of all requests): `80.ff.00` (`AddressClass::JIGTester`, `Address::get_my_address()`)
+- Packet number (`command.packetNumber`, 1 byte): set by `Packet::createa_partial()`, counts 1..255 and skips 0 on wrap-around, because `publish_data()` treats id `0` as "send immediately, no Ack expected". The unit's Ack carries the same packet number.
 
 **Key message numbers (hex):**
 
